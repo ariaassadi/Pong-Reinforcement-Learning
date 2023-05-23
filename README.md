@@ -9,7 +9,7 @@ Oliver Groth <br>
 This project was executed on Google Collab in order to run it with high GPU power. The file path in Google Collab is very specific
 
 ### Cart Pole
-To run Cart Pole open the file "Pole_Project.ipynb" and run the first cell
+To run Cart Pole open the file "Pong/Pole_Project.ipynb" and run the first cell
 
 ### Pong
-To run Pong open the file "Pong_Project.ipynb" and run the first cell
+To run Pong open the file "Pong/Pong_Project.ipynb" and run the first cell
