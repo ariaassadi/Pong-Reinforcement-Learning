@@ -48,15 +48,16 @@ if __name__ == '__main__':
     for episode in range(env_config['n_episodes']):
         terminated = False
         obs, info = env.reset()
-
-        obs = preprocess(obs, env=args.env).unsqueeze(0)
+        #print("obs shape")
+        #print(obs.shape)
+        #obs = preprocess(obs, env=args.env).unsqueeze(0)
         #print("1")
         obs_stack = torch.cat(env_config['obs_stack_size'] * [obs]).unsqueeze(0).to(device)
         #print("obs_stack shapebefore")
         #print(obs_stack.shape)
         k = 0
         while not terminated:
-            print(k)
+            #print(k)
             k += 1
             # TODO: Get action from DQN.
             #print("obs_stack shape")

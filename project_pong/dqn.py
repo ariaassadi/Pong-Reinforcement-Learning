@@ -74,6 +74,9 @@ class DQN(nn.Module):
         #print(x.shape)
         if x.shape == (32, 1, 4, 84, 84):
             x = x.squeeze(1)
+        if x.shape == (1, 4, 210, 160, 3):
+            x = x.squeeze(0)
+
         x = self.conv1(x)
         x = self.relu(x)
         x = self.conv2(x)
@@ -105,7 +108,7 @@ class DQN(nn.Module):
                 #print("act")
                 #print(observation.shape)
                 q_values = self.forward(observation)  # Calculate Q-values
-                q_values = q_values.view(1, 2) # Ugly hack to make it work, for some reason shape would change randomly
+                q_values = q_values.view(1, 6) # Ugly hack to make it work, for some reason shape would change randomly
                 _, action = q_values.max(dim=1)  # Get the indices of the maximum Q-values
                 action = action.view(1, 1)  # Reshape the action tensor
                 
@@ -113,7 +116,9 @@ class DQN(nn.Module):
         else: # Otherwise, explore and choose a random action
             #print("act random")
             action = torch.tensor([[random.randrange(self.n_actions)]], device=device, dtype=torch.long)
-
+        
+        #print("action")
+        #print(action)
         return action
 
 def optimize(dqn, target_dqn, memory, optimizer):
@@ -157,7 +162,11 @@ def optimize(dqn, target_dqn, memory, optimizer):
             q_value_targets[i] = reward[i]
     
     # Compute loss
-    loss = F.mse_loss(q_values.squeeze(), q_value_targets)
+    #print("q_values shape")
+    #print(q_values.shape)
+    #print("q_value_targets shape")
+    #print(q_value_targets.shape)
+    loss = F.mse_loss(q_values.squeeze(), q_value_targets.squeeze())
 
     # Perform gradient descent.
     optimizer.zero_grad()
