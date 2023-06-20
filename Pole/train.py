@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     # Initialize deep Q-networks.
     dqn = DQN(env_config=env_config).to(device)
-    # TODO: Create and initialize target Q-network.
+
     # Initialize target Q-network
     target_dqn = DQN(env_config=env_config).to(device)
 
@@ -53,7 +53,6 @@ if __name__ == '__main__':
         while not terminated and not truncated:
             # TODO: Get action from DQN.
             action = dqn.act(obs)
-            # Act in the true environment.
             next_obs, reward, terminated, truncated, info = env.step(action.item())
 
             # Preprocess incoming observation.
@@ -84,7 +83,7 @@ if __name__ == '__main__':
                 best_mean_return = mean_return
 
                 print('Best performance so far! Saving model.')
-                torch.save(dqn.state_dict(), "/content/drive/My Drive/RL_Project/Pole_Project/models/{}_best.pt".format(args.env))
+                torch.save(dqn, f'models/{args.env}_best.pt')
         
     # Close environment after training is completed.
     env.close()

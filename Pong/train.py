@@ -13,7 +13,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--env', choices=['CartPole-v1', 'ALE/Pong-v5'], default='ALE/Pong-v5')
-parser.add_argument('--evaluate_freq', type=int, default=25, help='How often to run evaluation.', nargs='?')
+parser.add_argument('--evaluate_freq', type=int, default=1, help='How often to run evaluation.', nargs='?')
 parser.add_argument('--evaluation_episodes', type=int, default=5, help='Number of evaluation episodes.', nargs='?')
 
 # Hyperparameter configurations for different environments. See config.py.
@@ -32,7 +32,6 @@ if __name__ == '__main__':
 
     # Initialize deep Q-networks.
     dqn = DQN(env_config=env_config).to(device)
-    # TODO: Create and initialize target Q-network.
     # Initialize target Q-network
     target_dqn = DQN(env_config=env_config).to(device)
 
@@ -48,33 +47,22 @@ if __name__ == '__main__':
     for episode in range(env_config['n_episodes']):
         terminated = False
         obs, info = env.reset()
-        #print("obs shape")
-        #print(obs.shape)
-        #obs = preprocess(obs, env=args.env).unsqueeze(0)
-        #print("1")
+
+        obs = preprocess(obs, env=args.env).unsqueeze(0)
+        
         obs_stack = torch.cat(env_config['obs_stack_size'] * [obs]).unsqueeze(0).to(device)
-        #print("obs_stack shapebefore")
-        #print(obs_stack.shape)
+
         k = 0
         while not terminated:
-            #print(k)
+            
             k += 1
             # TODO: Get action from DQN.
-            #print("obs_stack shape")
-            #print("WHYYYYYYYYY")
-            #print(obs_stack.shape)
 
-            #print("2")
             action = dqn.act(obs_stack)
-            # Act in the true environment.
             next_obs, reward, terminated, truncated, info = env.step(action.item())
 
-            # Preprocess incoming observation.
             if not terminated:
                 obs = preprocess(obs, env=args.env).unsqueeze(0)
-            
-            # TODO: Add the transition to the replay memory. Remember to convert
-            #       everything to PyTorch tensors!
 
             obs = torch.as_tensor(obs)
             action = torch.as_tensor(action)
@@ -93,20 +81,15 @@ if __name__ == '__main__':
 
             obs = next_obs
             obs_stack = next_obs_stack
-            # TODO: Run DQN.optimize() every env_config["train_frequency"] steps.
 
             if episode % env_config["train_frequency"] == 0:
-                #print("3")
                 optimize(dqn, target_dqn, memory, optimizer)
 
-            # TODO: Update the target network every env_config["target_update_frequency"] steps.
             if episode % env_config["target_update_frequency"] == 0:
-                #print("4")
                 target_dqn = dqn
 
         # Evaluate the current agent.
         if episode % args.evaluate_freq == 0:
-            #print("5")
             mean_return = evaluate_policy(dqn, env, env_config, args, n_episodes=args.evaluation_episodes)
             print(f'Episode {episode+1}/{env_config["n_episodes"]}: {mean_return}')
 

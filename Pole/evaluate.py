@@ -14,8 +14,8 @@ parser.add_argument('--path', type=str, help='Path to stored DQN model.')
 parser.add_argument('--n_eval_episodes', type=int, default=1, help='Number of evaluation episodes.', nargs='?')
 parser.add_argument('--render', dest='render', action='store_true', help='Render the environment.')
 parser.add_argument('--save_video', dest='save_video', action='store_true', help='Save the episodes as video.')
-parser.set_defaults(render=False)
-parser.set_defaults(save_video=False)
+parser.set_defaults(render=True)
+parser.set_defaults(save_video=True)
 
 # Hyperparameter configurations for different environments. See config.py.
 ENV_CONFIGS = {

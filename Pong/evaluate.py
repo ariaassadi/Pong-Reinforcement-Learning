@@ -29,19 +29,16 @@ def evaluate_policy(dqn, env, env_config, args, n_episodes, render=False, verbos
     total_return = 0
     for i in range(n_episodes):
         obs, info = env.reset()
-        #print("obs shape")
-        #print(obs.shape)
+
         obs = preprocess(obs, env=args.env).unsqueeze(0)
         obs_stack = torch.cat(env_config['obs_stack_size'] * [obs]).unsqueeze(0).to(device)
-        #print("obs_stack shape")
-        #print(obs_stack.shape)
+
         terminated = False
         episode_return = 0
 
         while not terminated:
             if render:
                 env.render()
-            #print("PROBLEM!")
             action = dqn.act(obs_stack, exploit=True).item()
             obs, reward, terminated, truncated, info = env.step(action)
             obs = preprocess(obs, env=args.env).unsqueeze(0)
