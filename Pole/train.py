@@ -57,21 +57,23 @@ if __name__ == '__main__':
 
             # Preprocess incoming observation.
             if not terminated:
-                obs = preprocess(obs, env=args.env).unsqueeze(0)
+                next_obs = preprocess(next_obs, env=args.env).unsqueeze(0)
             else:
-                obs = None
+                next_obs = None
 
             reward = torch.tensor([reward], device=device).float()
 
             memory.push(obs, action, next_obs, reward)
 
-            obs = next_obs
 
-            if n_steps % env_config["train_frequency"] == 0:
+            if n_steps % env_config["train_frequency"] == 0 and len(memory) > env_config["batch_size"]:
                 optimize(dqn, target_dqn, memory, optimizer)
 
             if n_steps % env_config["target_update_frequency"] == 0:
                 target_dqn.load_state_dict(dqn.state_dict())
+
+            obs = next_obs
+            n_steps += 1
 
         # Evaluate the current agent.
         if episode % args.evaluate_freq == 0:

@@ -68,10 +68,8 @@ class DQN(nn.Module):
 
         if greedy_rand > eps_threshold or exploit: # If the random number is greater than the threshold, exploit and choose the best action using the DQN
             with torch.no_grad():
-                q_values = self.forward(observation.to(device))   # Calculate Q-values
-                # q_values = q_values.view(1, 2) # Ugly hack to make it work, for some reason shape would change randomly
-                _, action = q_values.max(dim=1)  # Get the indices of the maximum Q-values
-                action = action.view(1, 1)  # Reshape the action tensor
+                q_values = self.forward(observation)   # Calculate Q-values
+                action = torch.argmax(q_values).view(1, 1) # Choose the best action
                 
                 #action = self.forward(observation).max(1)[1].view(1, 1)
         else: # Otherwise, explore and choose a random action
@@ -86,12 +84,20 @@ def optimize(dqn, target_dqn, memory, optimizer):
         return
     
     batch = memory.sample(dqn.batch_size)
-    obs = torch.cat(batch[0]).to(device)
-    action = torch.cat(batch[1]).to(device)
-    next_obs = torch.cat(batch[2]).to(device)
-    reward = torch.cat([s for s in batch[3] if s is not None]).to(device) # Handle the case where next_state is None
+
+    obs, action, next_obs, reward = batch
+
+    obs_batch = torch.cat(obs).to(device)
+    action_batch = torch.cat(action).to(device)
+    next_obs_batch = torch.cat(next_obs).to(device)
+    reward_batch = torch.cat([i for i in reward if i is not None]).to(device) # Handle the case where next_state is None
+    
+    #obs = torch.cat(batch[0]).to(device)
+    #action = torch.cat(batch[1]).to(device)
+    #next_obs = torch.cat(batch[2]).to(device)
+    #reward = torch.cat([s for s in batch[3] if s is not None]).to(device) # Handle the case where next_state is None
       
-    q_values = dqn.forward(obs).gather(1, action)
+    q_values = dqn(obs).gather(1, action)
     
     # Compute the Q-value targets for non-terminal transitions
     q_value_targets = torch.zeros(dqn.batch_size, device=device)
@@ -99,13 +105,13 @@ def optimize(dqn, target_dqn, memory, optimizer):
     for i in range(dqn.batch_size):
         # If non-terminal state
         if next_obs[i].sum() != 0:
-            q_value_targets[i] = reward[i] + dqn.gamma * target_dqn.forward(next_obs[i]).max(0)[0]
+            q_value_targets[i] = reward[i] + dqn.gamma * target_dqn.forward(next_obs[i]).max(1)[0].detach()
         # If terminal state
         else:
             q_value_targets[i] = reward[i]
     
     # Compute loss
-    loss = F.mse_loss(q_values.squeeze(), q_value_targets)
+    loss = F.mse_loss(q_values, q_value_targets.unsqueeze(1))
 
     # Perform gradient descent.
     optimizer.zero_grad()
