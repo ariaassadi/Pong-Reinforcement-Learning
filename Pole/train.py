@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     # Initialize deep Q-networks.
     dqn = DQN(env_config=env_config).to(device)
-    # TODO: Create and initialize target Q-network.
+
     # Initialize target Q-network
     target_dqn = DQN(env_config=env_config).to(device)
 
@@ -48,17 +48,13 @@ if __name__ == '__main__':
 
         obs = preprocess(obs, env=args.env).unsqueeze(0)
         while not terminated:
-            # TODO: Get action from DQN.
+    
             action = dqn.act(obs)
-            # Act in the true environment.
             next_obs, reward, terminated, truncated, info = env.step(action.item())
 
             # Preprocess incoming observation.
             if not terminated:
                 obs = preprocess(obs, env=args.env).unsqueeze(0)
-            
-            # TODO: Add the transition to the replay memory. Remember to convert
-            #       everything to PyTorch tensors!
 
             obs = torch.as_tensor(obs)
             action = torch.as_tensor(action)
@@ -74,12 +70,10 @@ if __name__ == '__main__':
             memory.push(obs, action, next_obs, reward)
 
             obs = next_obs
-            # TODO: Run DQN.optimize() every env_config["train_frequency"] steps.
 
             if episode % env_config["train_frequency"] == 0:
                 optimize(dqn, target_dqn, memory, optimizer)
 
-            # TODO: Update the target network every env_config["target_update_frequency"] steps.
             if episode % env_config["target_update_frequency"] == 0:
                 target_dqn = dqn
 
@@ -93,7 +87,7 @@ if __name__ == '__main__':
                 best_mean_return = mean_return
 
                 print('Best performance so far! Saving model.')
-                torch.save(dqn.state_dict(), "/content/drive/My Drive/RL_Project/Pole_Project/models/{}_best.pt".format(args.env))
+                torch.save(dqn, f'models/{args.env}_best.pt')
         
     # Close environment after training is completed.
     env.close()

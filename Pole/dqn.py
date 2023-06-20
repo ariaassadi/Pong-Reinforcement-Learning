@@ -20,12 +20,6 @@ class ReplayMemory:
         if len(self.memory) < self.capacity:
             self.memory.append(None)
 
-        # Move tensors to correct device
-        obs = obs.to(device)
-        action = action.to(device)
-        next_obs = next_obs.to(device)
-        reward = reward.to(device)
-        
         self.memory[self.position] = (obs, action, next_obs, reward)
         self.position = (self.position + 1) % self.capacity
 
@@ -76,7 +70,7 @@ class DQN(nn.Module):
 
         if greedy_rand > eps_threshold or exploit: # If the random number is greater than the threshold, exploit and choose the best action using the DQN
             with torch.no_grad():
-                q_values = self.forward(observation.to(device))   # Calculate Q-values
+                q_values = self.forward(observation)  # Calculate Q-values
                 q_values = q_values.view(1, 2) # Ugly hack to make it work, for some reason shape would change randomly
                 _, action = q_values.max(dim=1)  # Get the indices of the maximum Q-values
                 action = action.view(1, 1)  # Reshape the action tensor
@@ -92,25 +86,14 @@ def optimize(dqn, target_dqn, memory, optimizer):
     # If we don't have enough transitions stored yet, we don't train.
     if len(memory) < dqn.batch_size:
         return
-
-    # TODO: Sample a batch from the replay memory and concatenate so that there are
-    #       four tensors in total: observations, actions, next observations and rewards.
-    #       Remember to move them to GPU if it is available, e.g., by using Tensor.to(device).
-    #       Note that special care is needed for terminal transitions!
     
     batch = memory.sample(dqn.batch_size)
     obs = torch.stack(batch[0]).to(device)
     action = torch.stack(batch[1]).to(device)
     next_obs = torch.stack(batch[2]).to(device)
     reward = torch.stack(batch[3]).to(device)
-    
-
-    # TODO: Compute the current estimates of the Q-values for each state-action
-    #       pair (s,a). Here, torch.gather() is useful for selecting the Q-values
-    #       corresponding to the chosen actions.    
+        
     q_values = dqn.forward(obs).gather(1, action)
-    
-    # TODO: Compute the Q-value targets. Only do this for non-terminal transitions!
 
     # Compute the Q-value targets for non-terminal transitions
     q_value_targets = torch.zeros(dqn.batch_size, device=device)
