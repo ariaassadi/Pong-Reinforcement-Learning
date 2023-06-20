@@ -44,10 +44,13 @@ if __name__ == '__main__':
 
     for episode in range(env_config['n_episodes']):
         terminated = False
+        truncated = False
         obs, info = env.reset()
 
         obs = preprocess(obs, env=args.env).unsqueeze(0)
-        while not terminated:
+        n_steps = 0
+
+        while not terminated and not truncated:
             # TODO: Get action from DQN.
             action = dqn.act(obs)
             # Act in the true environment.
@@ -56,32 +59,20 @@ if __name__ == '__main__':
             # Preprocess incoming observation.
             if not terminated:
                 obs = preprocess(obs, env=args.env).unsqueeze(0)
-            
-            # TODO: Add the transition to the replay memory. Remember to convert
-            #       everything to PyTorch tensors!
+            else:
+                obs = None
 
-            obs = torch.as_tensor(obs)
-            action = torch.as_tensor(action)
-            next_obs = torch.as_tensor(next_obs)
-            reward = torch.as_tensor(reward)
-
-            # resize the tensors
-            obs = obs.view(4)
-            next_obs = next_obs.view(4)
-            reward = reward.view(1)
-            action = action.view(1)
+            reward = torch.tensor([reward], device=device).float()
 
             memory.push(obs, action, next_obs, reward)
 
             obs = next_obs
-            # TODO: Run DQN.optimize() every env_config["train_frequency"] steps.
 
-            if episode % env_config["train_frequency"] == 0:
+            if n_steps % env_config["train_frequency"] == 0:
                 optimize(dqn, target_dqn, memory, optimizer)
 
-            # TODO: Update the target network every env_config["target_update_frequency"] steps.
-            if episode % env_config["target_update_frequency"] == 0:
-                target_dqn = dqn
+            if n_steps % env_config["target_update_frequency"] == 0:
+                target_dqn.load_state_dict(dqn.state_dict())
 
         # Evaluate the current agent.
         if episode % args.evaluate_freq == 0:

@@ -20,11 +20,11 @@ class ReplayMemory:
         if len(self.memory) < self.capacity:
             self.memory.append(None)
 
-        # Move tensors to correct device
-        obs = obs.to(device)
-        action = action.to(device)
-        next_obs = next_obs.to(device)
-        reward = reward.to(device)
+        # # Move tensors to correct device
+        # obs = obs.to(device)
+        # action = action.to(device)
+        # next_obs = next_obs.to(device)
+        # reward = reward.to(device)
         
         self.memory[self.position] = (obs, action, next_obs, reward)
         self.position = (self.position + 1) % self.capacity
@@ -56,6 +56,8 @@ class DQN(nn.Module):
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
 
+        self.n_steps = 0
+
     def forward(self, x):
         """Runs the forward pass of the NN depending on architecture."""
         x = self.relu(self.fc1(x))
@@ -71,13 +73,14 @@ class DQN(nn.Module):
         #       the input would be a [32, 4] tensor and the output a [32, 1] tensor.
         # TODO: Implement epsilon-greedy exploration.
         
+        self.n_steps = self.n_steps + 1
         greedy_rand = random.random()
-        eps_threshold = self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1. * self.n_actions / self.anneal_length) # Calculates the epsilon threshold
+        eps_threshold = self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1. * self.n_steps / self.anneal_length) # Calculates the epsilon threshold
 
         if greedy_rand > eps_threshold or exploit: # If the random number is greater than the threshold, exploit and choose the best action using the DQN
             with torch.no_grad():
                 q_values = self.forward(observation.to(device))   # Calculate Q-values
-                q_values = q_values.view(1, 2) # Ugly hack to make it work, for some reason shape would change randomly
+                # q_values = q_values.view(1, 2) # Ugly hack to make it work, for some reason shape would change randomly
                 _, action = q_values.max(dim=1)  # Get the indices of the maximum Q-values
                 action = action.view(1, 1)  # Reshape the action tensor
                 
@@ -99,10 +102,10 @@ def optimize(dqn, target_dqn, memory, optimizer):
     #       Note that special care is needed for terminal transitions!
     
     batch = memory.sample(dqn.batch_size)
-    obs = torch.stack(batch[0]).to(device)
-    action = torch.stack(batch[1]).to(device)
-    next_obs = torch.stack(batch[2]).to(device)
-    reward = torch.stack(batch[3]).to(device)
+    obs = torch.cat(batch[0]).to(device)
+    action = torch.cat(batch[1]).to(device)
+    next_obs = torch.cat(batch[2]).to(device)
+    reward = torch.cat([s for s in batch[3] if s is not None]).to(device) # Handle the case where next_state is None
     
 
     # TODO: Compute the current estimates of the Q-values for each state-action
@@ -110,8 +113,6 @@ def optimize(dqn, target_dqn, memory, optimizer):
     #       corresponding to the chosen actions.    
     q_values = dqn.forward(obs).gather(1, action)
     
-    # TODO: Compute the Q-value targets. Only do this for non-terminal transitions!
-
     # Compute the Q-value targets for non-terminal transitions
     q_value_targets = torch.zeros(dqn.batch_size, device=device)
 
