@@ -7,6 +7,6 @@ def preprocess(obs, env):
     if env in ['CartPole-v1']:
         return torch.tensor(obs, device=device).float()
     elif env in ['ALE/Pong-v5']:
-        return torch.tensor(obs, device=device).float() / 255.
+        return torch.tensor(obs, device=device).float()
     else:
         raise ValueError('Please add necessary observation preprocessing instructions to preprocess() in utils.py.')

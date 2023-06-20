@@ -71,7 +71,6 @@ class DQN(nn.Module):
 
         # check if tensor is 4D
         # if 5D remove dimension
-        #print(x.shape)
         if x.shape == (32, 1, 4, 84, 84):
             x = x.squeeze(1)
         if x.shape == (1, 4, 210, 160, 3):
@@ -92,21 +91,13 @@ class DQN(nn.Module):
 
     def act(self, observation, exploit=False):
         """Selects an action with an epsilon-greedy exploration strategy."""
-        # TODO: Implement action selection using the Deep Q-network. This function
-        #       takes an observation tensor and should return a tensor of actions.
-        #       For example, if the state dimension is 4 and the batch size is 32,
-        #       the input would be a [32, 4] tensor and the output a [32, 1] tensor.
-        # TODO: Implement epsilon-greedy exploration.
         
         greedy_rand = random.random()
         eps_threshold = self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1. * self.n_actions / self.anneal_length) # Calculates the epsilon threshold
-        #eps_threshold = 0
-        #print("2.1")
-        if greedy_rand > eps_threshold or exploit: # If the random number is greater than the threshold, exploit and choose the best action using the DQN
+
+        if greedy_rand > eps_threshold or exploit: # If the random number is greater than the threshold exploit and choose the best action using the DQN
             with torch.no_grad():
-                #print("2.2")
-                #print("act")
-                #print(observation.shape)
+
                 q_values = self.forward(observation)  # Calculate Q-values
                 q_values = q_values.view(1, 6) # Ugly hack to make it work, for some reason shape would change randomly
                 _, action = q_values.max(dim=1)  # Get the indices of the maximum Q-values
@@ -114,58 +105,34 @@ class DQN(nn.Module):
                 
                 #action = self.forward(observation).max(1)[1].view(1, 1)
         else: # Otherwise, explore and choose a random action
-            #print("act random")
             action = torch.tensor([[random.randrange(self.n_actions)]], device=device, dtype=torch.long)
-        
-        #print("action")
-        #print(action)
+
         return action
 
 def optimize(dqn, target_dqn, memory, optimizer):
     """This function samples a batch from the replay buffer and optimizes the Q-network."""
     # If we don't have enough transitions stored yet, we don't train.
     if len(memory) < dqn.batch_size:
-        #print("3.1")
         return
-
-    # TODO: Sample a batch from the replay memory and concatenate so that there are
-    #       four tensors in total: observations, actions, next observations and rewards.
-    #       Remember to move them to GPU if it is available, e.g., by using Tensor.to(device).
-    #       Note that special care is needed for terminal transitions!
     
     batch = memory.sample(dqn.batch_size)
     obs = torch.stack(batch[0]).to(device)
     action = torch.stack(batch[1]).to(device)
     next_obs = torch.stack(batch[2]).to(device)
     reward = torch.stack(batch[3]).to(device)
-    
-    # TODO: Compute the current estimates of the Q-values for each state-action
-    #       pair (s,a). Here, torch.gather() is useful for selecting the Q-values
-    #       corresponding to the chosen actions.   
-    #print("optimize") 
-    #print("3.2")
-    q_values = dqn.forward(obs).gather(1, action)
-    
-    # TODO: Compute the Q-value targets. Only do this for non-terminal transitions!
 
-    # Compute the Q-value targets for non-terminal transitions
+    q_values = dqn.forward(obs).gather(1, action)
+
     q_value_targets = torch.zeros(dqn.batch_size, device=device).unsqueeze(1)
 
     for i in range(dqn.batch_size):
         # If non-terminal state
         if next_obs[i].sum() != 0:
-            #print("3.3")
-            #print("optimize batch")
             q_value_targets[i] = reward[i] + dqn.gamma * target_dqn.forward(next_obs[i]).squeeze(0).max(0)[0]
         # If terminal state
         else:
             q_value_targets[i] = reward[i]
-    
-    # Compute loss
-    #print("q_values shape")
-    #print(q_values.shape)
-    #print("q_value_targets shape")
-    #print(q_value_targets.shape)
+
     loss = F.mse_loss(q_values.squeeze(), q_value_targets.squeeze())
 
     # Perform gradient descent.
@@ -173,6 +140,5 @@ def optimize(dqn, target_dqn, memory, optimizer):
 
     loss.backward()
     optimizer.step()
-    #print("3.4")
 
     return loss.item()
